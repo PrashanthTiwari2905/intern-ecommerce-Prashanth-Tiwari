@@ -6,19 +6,18 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { ProductModule } from './product/product.module';
+import { CartModule } from './cart/cart.module';
 
 
 @Module({
   imports: [
-  PrismaModule,
-  AuthModule,
-  ProductModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
     PrismaModule,
     AuthModule,
     ProductModule,
+    CartModule,
   ],
   controllers: [AppController],
   providers: [AppService],
