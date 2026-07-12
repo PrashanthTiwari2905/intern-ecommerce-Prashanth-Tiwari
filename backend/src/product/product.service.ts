@@ -26,7 +26,7 @@ export class ProductService {
   async seedProducts() {
   const response = await firstValueFrom(
     this.httpService.get(
-      'https://dummyjson.com/products',
+      'https://dummyjson.com/products?limit=30',
     ),
   );
 
