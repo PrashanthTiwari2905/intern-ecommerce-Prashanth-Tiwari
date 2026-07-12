@@ -12,6 +12,7 @@ import {
 
 import { CartService } from './cart.service';
 import { AddToCartDto } from './dto/add-to-cart.dto';
+import { UpdateCartDto } from './dto/update-cart.dto';
 
 import { JwtAuthGuard } from 
 '../auth/guards/jwt-auth.guard';
@@ -52,12 +53,12 @@ updateCartItem(
   @Param('id', ParseIntPipe)
   id: number,
   @Body()
-  body: { quantity: number },
+updateCartDto: UpdateCartDto,
 ) {
   return this.cartService.updateCartItem(
     user.id,
     id,
-    body.quantity,
+    updateCartDto.quantity
   );
 }
 

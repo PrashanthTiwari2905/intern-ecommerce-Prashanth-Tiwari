@@ -23,6 +23,15 @@ export class ProductService {
   async findAll() {
     return this.prisma.product.findMany();
   }
+
+  async findOne(id: number) {
+  return this.prisma.product.findUnique({
+    where: {
+      id,
+    },
+  });
+}
+
   async seedProducts() {
   const response = await firstValueFrom(
     this.httpService.get(

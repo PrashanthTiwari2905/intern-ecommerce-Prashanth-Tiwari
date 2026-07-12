@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  ParseIntPipe,
   Post,
 } from '@nestjs/common';
 
@@ -36,4 +38,12 @@ seedProducts() {
   findAll() {
     return this.productService.findAll();
   }
+
+  @Get(':id')
+findOne(
+  @Param('id', ParseIntPipe)
+  id: number,
+) {
+  return this.productService.findOne(id);
+}
 }
