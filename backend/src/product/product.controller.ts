@@ -5,6 +5,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
 } from '@nestjs/common';
 
 import { ProductService } from 
@@ -34,10 +35,19 @@ seedProducts() {
   return this.productService.seedProducts();
 }
 
-  @Get()
-  findAll() {
-    return this.productService.findAll();
-  }
+ @Get()
+findAll(
+  @Query('page') page?: string,
+  @Query('limit') limit?: string,
+  @Query('search') search?: string,
+) {
+  return this.productService.findAll(
+    Number(page) || 1,
+    Number(limit) || 10,
+    search,
+  );
+}
+
 
   @Get(':id')
 findOne(
