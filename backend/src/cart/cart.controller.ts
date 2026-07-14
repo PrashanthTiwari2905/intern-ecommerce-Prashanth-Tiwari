@@ -10,6 +10,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+
 import { CartService } from './cart.service';
 import { AddToCartDto } from './dto/add-to-cart.dto';
 import { UpdateCartDto } from './dto/update-cart.dto';
@@ -19,6 +25,9 @@ import { JwtAuthGuard } from
 import { CurrentUser } from 
 '../auth/decorators/current-user.decorator';
 
+@ApiTags('Cart')
+@ApiBearerAuth()
+
 @Controller('cart')
 @UseGuards(JwtAuthGuard)
 export class CartController {
@@ -26,7 +35,10 @@ export class CartController {
     private readonly cartService: CartService,
   ) {}
 
-  @Post('add')
+  @ApiOperation({
+  summary: 'Add product to cart',
+})
+@Post('add')
   addToCart(
     @CurrentUser() user: any,
     @Body()
@@ -38,7 +50,11 @@ export class CartController {
     );
   }
 
-  @Get()
+  @ApiOperation({
+  summary:
+    'Get current user cart',
+})
+@Get()
   getCart(
     @CurrentUser() user: any,
   ) {
@@ -47,7 +63,12 @@ export class CartController {
     );
   }
 
-  @Patch(':id')
+
+  @ApiOperation({
+  summary:
+    'Update cart quantity',
+})
+@Patch(':id')
 updateCartItem(
   @CurrentUser() user: any,
   @Param('id', ParseIntPipe)
@@ -62,6 +83,10 @@ updateCartDto: UpdateCartDto,
   );
 }
 
+@ApiOperation({
+  summary:
+    'Delete cart item',
+})
 @Delete(':id')
 removeCartItem(
   @CurrentUser() user: any,

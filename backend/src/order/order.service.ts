@@ -5,6 +5,8 @@ import {
 
 import { PrismaService } from '../prisma/prisma.service';
 
+import { NotFoundException } from '@nestjs/common';
+
 @Injectable()
 export class OrderService {
   constructor(
@@ -79,10 +81,11 @@ export class OrderService {
   }
 
   async getOrderById(
-    userId: number,
-    orderId: number,
-  ) {
-    return this.prisma.order.findFirst({
+  userId: number,
+  orderId: number,
+) {
+  const order =
+    await this.prisma.order.findFirst({
       where: {
         id: orderId,
         userId,
@@ -95,5 +98,12 @@ export class OrderService {
         },
       },
     });
+
+  if (!order) {
+    throw new NotFoundException(
+      'Order not found',
+    );
   }
-}
+
+  return order;
+}}
