@@ -76,6 +76,10 @@ export class AuthService {
     );
   }
 
+  console.log(loginDto);
+console.log(user);
+console.log(user?.password);
+
   const isPasswordCorrect =
     await bcrypt.compare(
       password,
