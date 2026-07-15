@@ -18,6 +18,12 @@ export class ProductService {
   }
 
   async seedProducts() {
+    // Delete old data first
+    await this.prisma.cartItem.deleteMany();
+    await this.prisma.orderItem.deleteMany();
+    await this.prisma.product.deleteMany();
+
+    // Fetch only 30 products
     const response = await firstValueFrom(
       this.httpService.get(
         'https://dummyjson.com/products?limit=30',
@@ -26,6 +32,7 @@ export class ProductService {
 
     const products = response.data.products;
 
+    // Insert products into DB
     for (const product of products) {
       await this.prisma.product.create({
         data: {
@@ -39,7 +46,7 @@ export class ProductService {
     }
 
     return {
-      message: `${products.length} products imported`,
+      message: '30 products imported',
     };
   }
 
@@ -69,15 +76,17 @@ export class ProductService {
         }
       : {};
 
-    const products = await this.prisma.product.findMany({
-      where,
-      skip,
-      take: limit,
-    });
+    const products =
+      await this.prisma.product.findMany({
+        where,
+        skip,
+        take: limit,
+      });
 
-    const total = await this.prisma.product.count({
-      where,
-    });
+    const total =
+      await this.prisma.product.count({
+        where,
+      });
 
     return {
       data: products,
@@ -85,7 +94,9 @@ export class ProductService {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(
+          total / limit,
+        ),
       },
     };
   }

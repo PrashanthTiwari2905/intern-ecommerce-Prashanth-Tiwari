@@ -12,16 +12,35 @@ export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] =
     useState(1);
+  const [search, setSearch] = useState("");  
+
+  const [debouncedSearch, setDebouncedSearch] =
+  useState("");
 
   useEffect(() => {
-    fetchProducts();
-  }, [page]);
+  const timer = setTimeout(() => {
+    setDebouncedSearch(search);
+  }, 500);
+
+  return () => clearTimeout(timer);
+}, [search]);
+
+  useEffect(() => {
+  fetchProducts();
+}, [page, debouncedSearch]);
 
   const fetchProducts = async () => {
   try {
     if (page > 3) return;
 
-    const data = await getProducts(page);
+    const data = await getProducts(
+  page,
+  10,
+  debouncedSearch
+);
+
+setProducts(data.data);
+setTotalPages(3);
 
     setProducts(data.data);
 
@@ -91,6 +110,32 @@ const logout = () => {
   </div>
 </div>
 </div>
+
+
+<div className="max-w-7xl mx-auto px-8 pt-8">
+  <input
+    type="text"
+    placeholder="Search products..."
+    value={search}
+    onChange={(e) => {
+      setSearch(e.target.value);
+      setPage(1);
+    }}
+    className="
+      w-full
+      p-4
+      rounded-2xl
+      border
+      border-slate-300
+      bg-white
+      shadow-sm
+      focus:outline-none
+      focus:ring-2
+      focus:ring-blue-500
+    "
+  />
+</div>
+
       {/* Products */}
       <div className="max-w-7xl mx-auto p-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
         {products.map((product) => (
