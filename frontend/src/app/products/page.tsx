@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getProducts } from "@/services/product.service";
+import { addToCart } from "@/services/cart.service";
 import { useRouter } from "next/navigation";
 
 export default function ProductsPage() {
@@ -30,29 +31,66 @@ export default function ProductsPage() {
   }
 };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    router.push("/login");
-  };
+  const handleAddToCart = async (
+  productId: number
+) => {
+  try {
+    await addToCart(
+      productId,
+      1
+    );
+
+    alert("Added to cart!");
+  } catch (err) {
+    console.log(err);
+
+    alert("Failed to add to cart");
+  }
+};
+
+const logout = () => {
+  localStorage.removeItem("token");
+  router.push("/login");
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200">
       {/* Navbar */}
       <div className="bg-white/80 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-50">
+
         <div className="max-w-7xl mx-auto p-5 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-slate-800">
-            E-Commerce Store
-          </h1>
+  <h1 className="text-3xl font-bold text-slate-800">
+    E-Commerce Store
+  </h1>
 
-          <button
-            onClick={logout}
-            className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-xl font-semibold transition"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
+  <div className="flex gap-4">
+    <button
+      onClick={() =>
+        router.push("/cart")
+      }
+      className="bg-blue-600 text-white px-5 py-2 rounded-xl"
+    >
+      Cart
+    </button>
 
+    <button
+      onClick={() =>
+        router.push("/orders")
+      }
+      className="bg-green-600 text-white px-5 py-2 rounded-xl"
+    >
+      Orders
+    </button>
+
+    <button
+      onClick={logout}
+      className="bg-red-500 text-white px-5 py-2 rounded-xl"
+    >
+      Logout
+    </button>
+  </div>
+</div>
+</div>
       {/* Products */}
       <div className="max-w-7xl mx-auto p-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
         {products.map((product) => (
@@ -111,20 +149,25 @@ export default function ProductsPage() {
               </div>
 
               <button
+                onClick={() =>
+                    handleAddToCart(
+                        product.id
+                    )
+                }
                 className="
-                  mt-5
-                  w-full
-                  bg-slate-900
-                  text-white
-                  py-3
-                  rounded-2xl
-                  font-semibold
-                  hover:bg-blue-600
-                  transition
+                    mt-5
+                    w-full
+                    bg-slate-900
+                    text-white
+                    py-3
+                    rounded-2xl
+                    font-semibold
+                    hover:bg-blue-600
+                    transition
                 "
-              >
-                Add to Cart
-              </button>
+                >
+                    Add to Cart
+                </button>
             </div>
           </div>
         ))}
