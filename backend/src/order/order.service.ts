@@ -1,11 +1,10 @@
 import {
   BadRequestException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
-
-import { NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class OrderService {
@@ -14,6 +13,7 @@ export class OrderService {
   ) {}
 
   async checkout(userId: number) {
+    // Step 1: Fetch all cart items with product details
     const cartItems =
       await this.prisma.cartItem.findMany({
         where: {
@@ -24,12 +24,14 @@ export class OrderService {
         },
       });
 
+    // Prevent checkout if cart is empty
     if (cartItems.length === 0) {
       throw new BadRequestException(
         'Cart is empty',
       );
     }
 
+    // Step 2: Calculate total order amount
     const total = cartItems.reduce(
       (sum, item) =>
         sum +
@@ -37,32 +39,38 @@ export class OrderService {
       0,
     );
 
-    const order =
-      await this.prisma.order.create({
-        data: {
-          userId,
-          total,
-        },
-      });
+    // Step 3: Execute everything inside a transaction
+    return this.prisma.$transaction(
+      async (tx) => {
+        // Create Order
+        const order =
+          await tx.order.create({
+            data: {
+              userId,
+              total,
+            },
+          });
 
-    for (const item of cartItems) {
-      await this.prisma.orderItem.create({
-        data: {
-          orderId: order.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.product.price,
-        },
-      });
-    }
+        // Create all Order Items together
+        await tx.orderItem.createMany({
+          data: cartItems.map((item) => ({
+            orderId: order.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.product.price,
+          })),
+        });
 
-    await this.prisma.cartItem.deleteMany({
-      where: {
-        userId,
+        // Clear user's cart
+        await tx.cartItem.deleteMany({
+          where: {
+            userId,
+          },
+        });
+
+        return order;
       },
-    });
-
-    return order;
+    );
   }
 
   async getOrders(userId: number) {
@@ -70,6 +78,11 @@ export class OrderService {
       where: {
         userId,
       },
+
+      orderBy: {
+        id: 'desc',
+      },
+
       include: {
         orderItems: {
           include: {
@@ -81,29 +94,31 @@ export class OrderService {
   }
 
   async getOrderById(
-  userId: number,
-  orderId: number,
-) {
-  const order =
-    await this.prisma.order.findFirst({
-      where: {
-        id: orderId,
-        userId,
-      },
-      include: {
-        orderItems: {
-          include: {
-            product: true,
+    userId: number,
+    orderId: number,
+  ) {
+    const order =
+      await this.prisma.order.findFirst({
+        where: {
+          id: orderId,
+          userId,
+        },
+
+        include: {
+          orderItems: {
+            include: {
+              product: true,
+            },
           },
         },
-      },
-    });
+      });
 
-  if (!order) {
-    throw new NotFoundException(
-      'Order not found',
-    );
+    if (!order) {
+      throw new NotFoundException(
+        'Order not found',
+      );
+    }
+
+    return order;
   }
-
-  return order;
-}}
+}
