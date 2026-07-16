@@ -9,7 +9,7 @@ export const signup = async (
 ) => {
   const response = await api.post(
     "/auth/signup",
-    data,
+    data
   );
 
   return response.data;
@@ -23,16 +23,16 @@ export const login = async (
 ) => {
   const response = await api.post(
     "/auth/login",
-    data,
+    data
   );
 
   return response.data;
 };
 
-export const getProfile =
-  async () => {
-    const response =
-      await api.get("/auth/profile");
+export const getProfile = async () => {
+  const response = await api.get(
+    "/auth/profile"
+  );
 
-    return response.data;
-  };
+  return response.data;
+};

@@ -1,106 +1,285 @@
 "use client";
 
-import { useState } from "react";
-import { signup } from "@/services/auth.service";
+import { useState, useMemo } from "react";
+import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import toast from "react-hot-toast";
+import { signup } from "@/services/auth.service";
+
+interface SignupForm {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+function getPasswordStrength(password: string) {
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+  if (/\d/.test(password)) score++;
+  if (/[^a-zA-Z0-9]/.test(password)) score++;
+
+  if (score <= 1) return { label: "Weak", color: "bg-red-500", bars: 1, textColor: "text-red-600" };
+  if (score <= 2) return { label: "Fair", color: "bg-orange-500", bars: 2, textColor: "text-orange-600" };
+  if (score <= 3) return { label: "Good", color: "bg-amber-500", bars: 3, textColor: "text-amber-600" };
+  if (score <= 4) return { label: "Strong", color: "bg-green-500", bars: 4, textColor: "text-green-600" };
+  return { label: "Very strong", color: "bg-emerald-500", bars: 5, textColor: "text-emerald-600" };
+}
 
 export default function SignupPage() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  const [name, setName] = useState("");
-  const [email, setEmail] =
-    useState("");
-  const [password, setPassword] =
-    useState("");
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<SignupForm>({ mode: "onBlur" });
 
-  const handleSubmit = async (
-    e: React.FormEvent
-  ) => {
-    e.preventDefault();
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const watchedPassword = watch("password", "");
+  const passwordStrength = useMemo(() => getPasswordStrength(watchedPassword), [watchedPassword]);
 
+  const onSubmit = async (data: SignupForm) => {
+    if (!agreedToTerms) {
+      toast.error("Please agree to the terms and conditions");
+      return;
+    }
+    setIsLoading(true);
     try {
-      await signup({
-        name,
-        email,
-        password,
-      });
-
-      alert(
-        "Signup successful"
-      );
-
-      router.push("/login");
+      await signup({ name: data.name, email: data.email, password: data.password });
+      toast.success("Account created successfully!");
+      setTimeout(() => router.push("/login"), 1200);
     } catch {
-      alert("Signup failed");
+      toast.error("Signup failed. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex justify-center items-center bg-gradient-to-br from-slate-100 to-slate-200">
-      <div className="w-[450px] p-10 rounded-3xl bg-white shadow-2xl border border-gray-200">
-        <h1 className="text-4xl font-bold text-center text-slate-800 mb-8">
-          Create Account
-        </h1>
+    <div className="min-h-screen flex overflow-hidden">
+      {/* Left Branding Panel */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden min-w-0">
+        <div className="absolute inset-0">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl translate-x-1/3 -translate-y-1/3" />
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl -translate-x-1/4 translate-y-1/4" />
+        </div>
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        />
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-5"
-        >
-          <input
-            type="text"
-            placeholder="Name"
-            value={name}
-            onChange={(e) =>
-              setName(
-                e.target.value
-              )
-            }
-            className="w-full p-4 rounded-xl bg-slate-100 border border-slate-300 text-slate-800"
-          />
+        <div className="relative flex flex-col justify-between p-12 w-full min-w-0 overflow-hidden">
+          <Link href="/products" className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
+              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+            </div>
+            <span className="text-2xl font-bold text-white">
+              IND<span className="text-blue-400">Mart</span>
+            </span>
+          </Link>
 
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) =>
-              setEmail(
-                e.target.value
-              )
-            }
-            className="w-full p-4 rounded-xl bg-slate-100 border border-slate-300 text-slate-800"
-          />
+          <div className="flex-1 flex flex-col justify-center max-w-lg min-w-0 overflow-hidden">
+            <h1 className="text-3xl lg:text-4xl font-bold text-white leading-tight mb-6">
+              Start your <span className="text-blue-400">shopping</span> journey
+            </h1>
+            <p className="text-base lg:text-lg text-slate-400 leading-relaxed mb-10">
+              Create your account and discover thousands of products at unbeatable prices. Your next favorite find is just a click away.
+            </p>
+            <div className="grid grid-cols-3 gap-6">
+              {[
+                { value: "10K+", label: "Products" },
+                { value: "50K+", label: "Happy customers" },
+                { value: "4.9", label: "App rating" },
+              ].map((stat) => (
+                <div key={stat.label} className="text-center">
+                  <p className="text-2xl font-bold text-white">{stat.value}</p>
+                  <p className="text-xs text-slate-400 mt-1">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) =>
-              setPassword(
-                e.target.value
-              )
-            }
-            className="w-full p-4 rounded-xl bg-slate-100 border border-slate-300 text-slate-800"
-          />
+          <p className="text-sm text-slate-500">&copy; {new Date().getFullYear()} INDMart. All rights reserved.</p>
+        </div>
+      </div>
 
-          <button className="w-full p-4 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition">
-            Signup
-          </button>
-        </form>
+      {/* Right Form Panel */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 bg-slate-50 min-w-0">
+        <div className="w-full max-w-md">
+          <div className="lg:hidden text-center mb-8">
+            <Link href="/products" className="inline-flex items-center gap-2.5">
+              <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/20">
+                <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+              <span className="text-2xl font-bold text-slate-900">
+                IND<span className="text-blue-600">Mart</span>
+              </span>
+            </Link>
+          </div>
 
-        <p className="text-center mt-6 text-slate-600">
-          Already have an account?
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Create your account</h2>
+            <p className="text-sm text-slate-500">
+              Already have an account?{" "}
+              <Link href="/login" className="font-semibold text-blue-600 hover:text-blue-700 transition-colors">Sign in</Link>
+            </p>
+          </div>
 
-          <span
-            onClick={() =>
-              router.push(
-                "/login"
-              )
-            }
-            className="font-bold text-blue-600 cursor-pointer ml-2"
-          >
-            Login
-          </span>
-        </p>
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-1.5">Full name</label>
+                <input
+                  id="name"
+                  type="text"
+                  placeholder="John Doe"
+                  autoComplete="name"
+                  {...register("name", { required: "Name is required", minLength: { value: 2, message: "At least 2 characters" } })}
+                  style={{ backgroundColor: "#ffffff" }}
+                  className={`w-full h-12 rounded-xl border px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                    errors.name ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200" : "border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:border-slate-400"
+                  }`}
+                />
+                {errors.name && <p className="mt-1.5 text-xs text-red-600">{errors.name.message}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">Email address</label>
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: "Please enter a valid email" },
+                  })}
+                  style={{ backgroundColor: "#ffffff" }}
+                  className={`w-full h-12 rounded-xl border px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                    errors.email ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200" : "border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:border-slate-400"
+                  }`}
+                />
+                {errors.email && <p className="mt-1.5 text-xs text-red-600">{errors.email.message}</p>}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-700">Password</label>
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors">
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Create a strong password"
+                  autoComplete="new-password"
+                  {...register("password", { required: "Password is required", minLength: { value: 8, message: "At least 8 characters" } })}
+                  style={{ backgroundColor: "#ffffff" }}
+                  className={`w-full h-12 rounded-xl border px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                    errors.password ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200" : "border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:border-slate-400"
+                  }`}
+                />
+                {watchedPassword && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="flex gap-1 flex-1">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${i <= passwordStrength.bars ? passwordStrength.color : "bg-slate-200"}`} />
+                      ))}
+                    </div>
+                    <span className={`text-xs font-medium ${passwordStrength.textColor}`}>{passwordStrength.label}</span>
+                  </div>
+                )}
+                {errors.password && <p className="mt-1.5 text-xs text-red-600">{errors.password.message}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 mb-1.5">Confirm password</label>
+                <input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Re-enter your password"
+                  autoComplete="new-password"
+                  {...register("confirmPassword", { required: "Please confirm your password", validate: (v) => v === watchedPassword || "Passwords do not match" })}
+                  style={{ backgroundColor: "#ffffff" }}
+                  className={`w-full h-12 rounded-xl border px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                    errors.confirmPassword ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200" : "border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:border-slate-400"
+                  }`}
+                />
+                {errors.confirmPassword && <p className="mt-1.5 text-xs text-red-600">{errors.confirmPassword.message}</p>}
+              </div>
+
+              <div className="flex items-start gap-3 pt-1">
+                <div className="relative mt-0.5">
+                  <input id="terms" type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} className="sr-only peer" />
+                  <label htmlFor="terms" className="h-5 w-5 rounded-md border-2 border-slate-300 bg-white cursor-pointer transition-all peer-checked:bg-blue-600 peer-checked:border-blue-600 hover:border-slate-400 flex items-center justify-center">
+                    {agreedToTerms && (
+                      <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                    )}
+                  </label>
+                </div>
+                <label htmlFor="terms" className="text-sm text-slate-600 leading-relaxed cursor-pointer">
+                  I agree to the <Link href="#" className="font-medium text-blue-600 hover:text-blue-700 underline underline-offset-2">Terms</Link> and <Link href="#" className="font-medium text-blue-600 hover:text-blue-700 underline underline-offset-2">Privacy Policy</Link>
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading || !agreedToTerms}
+                className="w-full h-12 rounded-xl bg-slate-900 text-sm font-semibold text-white hover:bg-slate-800 active:bg-slate-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md mt-1"
+              >
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Creating account...
+                  </span>
+                ) : "Create account"}
+              </button>
+            </form>
+          </div>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-300" /></div>
+            <div className="relative flex justify-center text-sm"><span className="bg-slate-50 px-4 text-slate-500">or sign up with</span></div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button type="button" className="h-12 rounded-xl border border-slate-300 bg-white text-sm font-medium text-slate-700 hover:bg-slate-100 hover:border-slate-400 transition-all flex items-center justify-center gap-2 shadow-sm">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+              </svg>
+              Google
+            </button>
+            <button type="button" className="h-12 rounded-xl border border-slate-300 bg-white text-sm font-medium text-slate-700 hover:bg-slate-100 hover:border-slate-400 transition-all flex items-center justify-center gap-2 shadow-sm">
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+              </svg>
+              GitHub
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

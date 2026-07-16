@@ -5,13 +5,18 @@ export const getProducts = async (
   limit = 10,
   search = ""
 ) => {
-  console.log(
-    "API CALL:",
+  const response = await api.get(
     `/products?page=${page}&limit=${limit}&search=${search}`
   );
 
+  return response.data;
+};
+
+export const getProduct = async (
+  id: number
+) => {
   const response = await api.get(
-    `/products?page=${page}&limit=${limit}&search=${search}`
+    `/products/${id}`
   );
 
   return response.data;
