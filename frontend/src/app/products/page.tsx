@@ -150,7 +150,7 @@ export default function ProductsPage() {
 
       <main className="max-w-7xl mx-auto px-6 md:px-10 py-12 md:py-16">
         {/* Page Header */}
-        <div className="mb-12">
+        <div className="mb-12 pb-1.5">
           <div className="flex items-center gap-3 mb-2">
             <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-600/20">
               <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -342,11 +342,10 @@ export default function ProductsPage() {
                 <button
                   key={p}
                   onClick={() => setPage(p)}
-                  className={`h-10 min-w-[40px] px-4 rounded-xl text-sm font-medium transition-all shadow-sm ${
-                    p === page
+                  className={`h-10 min-w-[40px] px-4 rounded-xl text-sm font-medium transition-all shadow-sm ${p === page
                       ? "bg-slate-900 text-white shadow-md"
                       : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"
-                  }`}
+                    }`}
                 >
                   {p}
                 </button>
