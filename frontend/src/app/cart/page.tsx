@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCart, removeFromCart, checkout } from "@/services/cart.service";
+import { getCart, removeFromCart, checkout, updateCartItem } from "@/services/cart.service";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import toast from "react-hot-toast";
@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 interface CartItem {
   id: number;
   quantity: number;
-  product: { id: number; name: string; price: number; imageUrl?: string };
+  product: { id: number; name: string; price: number; imageUrl?: string; stock: number };
 }
 
 export default function CartPage() {
@@ -69,6 +69,34 @@ export default function CartPage() {
       fetchCart();
     } catch {
       toast.error("Failed to remove item");
+    }
+  };
+
+  const handleUpdateQuantity = async (id: number, newQty: number, maxStock: number) => {
+    if (newQty < 1) return;
+    if (newQty > maxStock) {
+      toast.error(`Cannot add more than available stock (${maxStock})`);
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      const localCartStr = localStorage.getItem("local_cart");
+      let localCart = localCartStr ? JSON.parse(localCartStr) : [];
+      const itemIndex = localCart.findIndex((item: any) => item.id === id);
+      if (itemIndex > -1) {
+        localCart[itemIndex].quantity = newQty;
+        localStorage.setItem("local_cart", JSON.stringify(localCart));
+        setCart(localCart);
+      }
+      return;
+    }
+
+    try {
+      await updateCartItem(id, newQty);
+      fetchCart();
+    } catch {
+      toast.error("Failed to update quantity");
     }
   };
 
@@ -186,10 +214,24 @@ export default function CartPage() {
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-slate-900 truncate">{item.product.name}</h3>
                     <p className="text-sm text-slate-500 mt-1">${item.product.price.toLocaleString("en-US")} each</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-[11px] font-semibold text-slate-600">
-                        Qty: {item.quantity}
-                      </span>
+                    <div className="flex items-center gap-4 mt-2">
+                      <div className="flex items-center border border-slate-200 rounded-xl h-8 bg-slate-50">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity - 1, item.product.stock)}
+                          className="w-7 h-full text-xs font-semibold text-slate-600 hover:text-blue-600 transition-colors"
+                        >
+                          −
+                        </button>
+                        <span className="w-6 text-center text-xs font-bold text-slate-900">{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1, item.product.stock)}
+                          className="w-7 h-full text-xs font-semibold text-slate-600 hover:text-blue-600 transition-colors"
+                        >
+                          +
+                        </button>
+                      </div>
                       <span className="text-sm font-bold text-slate-900">${(item.quantity * item.product.price).toLocaleString("en-US")}</span>
                     </div>
                   </div>

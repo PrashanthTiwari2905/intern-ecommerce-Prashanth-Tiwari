@@ -28,3 +28,13 @@ export const checkout = async () => {
   const res = await api.post("/orders/checkout");
   return res.data;
 };
+
+export const updateCartItem = async (
+  id: number,
+  quantity: number
+) => {
+  const res = await api.patch(`/cart/${id}`, {
+    quantity,
+  });
+  return res.data;
+};

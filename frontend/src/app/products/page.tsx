@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getProducts } from "@/services/product.service";
 import { addToCart } from "@/services/cart.service";
 import Navbar from "@/components/Navbar";
@@ -52,6 +53,80 @@ export default function ProductsPage() {
   const [retryKey, setRetryKey] = useState(0);
   const latestRequestId = useRef(0);
 
+  const [cartItemsMap, setCartItemsMap] = useState<Record<number, { id: number; quantity: number }>>({});
+  const router = useRouter();
+
+  const fetchCartItems = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      const localCartStr = localStorage.getItem("local_cart");
+      if (localCartStr) {
+        try {
+          const localCart = JSON.parse(localCartStr);
+          const map: Record<number, { id: number; quantity: number }> = {};
+          localCart.forEach((item: any) => {
+            map[item.product.id] = { id: item.id, quantity: item.quantity };
+          });
+          setCartItemsMap(map);
+        } catch (e) {
+          console.error(e);
+        }
+      } else {
+        setCartItemsMap({});
+      }
+      return;
+    }
+
+    try {
+      const { getCart } = await import("@/services/cart.service");
+      const cartData = await getCart();
+      const map: Record<number, { id: number; quantity: number }> = {};
+      cartData.forEach((item: any) => {
+        map[item.product.id] = { id: item.id, quantity: item.quantity };
+      });
+      setCartItemsMap(map);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchCartItems();
+  }, []);
+
+  const handleUpdateCartItemQuantity = async (productId: number, newQty: number, maxStock: number) => {
+    if (newQty < 1) return;
+    if (newQty > maxStock) {
+      toast.error(`Cannot add more than available stock (${maxStock})`);
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      const localCartStr = localStorage.getItem("local_cart");
+      let localCart = localCartStr ? JSON.parse(localCartStr) : [];
+      const itemIndex = localCart.findIndex((item: any) => item.product.id === productId);
+      if (itemIndex > -1) {
+        localCart[itemIndex].quantity = newQty;
+        localStorage.setItem("local_cart", JSON.stringify(localCart));
+        fetchCartItems();
+      }
+      return;
+    }
+
+    const cartItem = cartItemsMap[productId];
+    if (!cartItem) return;
+
+    try {
+      const { updateCartItem } = await import("@/services/cart.service");
+      await updateCartItem(cartItem.id, newQty);
+      fetchCartItems();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update quantity");
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
@@ -80,9 +155,20 @@ export default function ProductsPage() {
     return () => { cancelled = true; };
   }, [page, debouncedSearch, retryKey]);
 
-  const getQuantity = (productId: number) => quantities[productId] ?? 1;
-  const setQuantity = (productId: number, value: number, max: number) => {
-    setQuantities((prev) => ({ ...prev, [productId]: Math.min(Math.max(1, value), max) }));
+  const getQuantity = (productId: number) => {
+    if (productId in cartItemsMap) {
+      return cartItemsMap[productId].quantity;
+    }
+    return quantities[productId] ?? 1;
+  };
+
+  const setQuantity = async (productId: number, value: number, max: number) => {
+    const targetQty = Math.min(Math.max(1, value), max);
+    if (productId in cartItemsMap) {
+      await handleUpdateCartItemQuantity(productId, targetQty, max);
+    } else {
+      setQuantities((prev) => ({ ...prev, [productId]: targetQty }));
+    }
   };
 
   const handleAddToCart = async (productId: number) => {
@@ -130,12 +216,14 @@ export default function ProductsPage() {
       localStorage.setItem("local_cart", JSON.stringify(localCart));
       toast.success("Added to cart!");
       setAddingId(null);
+      fetchCartItems();
       return;
     }
 
     try {
       await addToCart(productId, getQuantity(productId));
       toast.success("Added to cart!");
+      fetchCartItems();
     } catch (err) {
       console.error(err);
       toast.error("Couldn't add to cart");
@@ -308,11 +396,27 @@ export default function ProductsPage() {
                       </div>
 
                       <button
-                        onClick={() => handleAddToCart(product.id)}
+                        onClick={() => {
+                          if (product.id in cartItemsMap) {
+                            router.push("/cart");
+                          } else {
+                            handleAddToCart(product.id);
+                          }
+                        }}
                         disabled={stock.isOut || isAdding}
-                        className="flex-1 h-10 rounded-xl bg-slate-900 text-xs font-semibold text-white hover:bg-slate-800 active:bg-slate-700 transition-all disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                        className={`flex-1 h-10 rounded-xl text-xs font-semibold transition-all disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed shadow-sm hover:shadow-md ${
+                          product.id in cartItemsMap
+                            ? "bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white"
+                            : "bg-slate-900 hover:bg-slate-800 active:bg-slate-700 text-white"
+                        }`}
                       >
-                        {stock.isOut ? "Out of stock" : isAdding ? "Adding..." : "Add to cart"}
+                        {stock.isOut
+                          ? "Out of stock"
+                          : isAdding
+                          ? "Adding..."
+                          : product.id in cartItemsMap
+                          ? "Go to Cart ✓"
+                          : "Add to cart"}
                       </button>
                     </div>
                   </div>

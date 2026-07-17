@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getProduct } from "@/services/product.service";
 import { addToCart } from "@/services/cart.service";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import toast from "react-hot-toast";
@@ -19,10 +19,92 @@ interface ProductDetail {
 
 export default function ProductDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [quantity, setQuantity] = useState(1);
+  const [localQuantity, setLocalQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
+
+  const [cartItemsMap, setCartItemsMap] = useState<Record<number, { id: number; quantity: number }>>({});
+
+  const fetchCartItems = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      const localCartStr = localStorage.getItem("local_cart");
+      if (localCartStr) {
+        try {
+          const localCart = JSON.parse(localCartStr);
+          const map: Record<number, { id: number; quantity: number }> = {};
+          localCart.forEach((item: any) => {
+            map[item.product.id] = { id: item.id, quantity: item.quantity };
+          });
+          setCartItemsMap(map);
+          if (product && product.id in map) {
+            setLocalQuantity(map[product.id].quantity);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      } else {
+        setCartItemsMap({});
+      }
+      return;
+    }
+
+    try {
+      const { getCart } = await import("@/services/cart.service");
+      const cartData = await getCart();
+      const map: Record<number, { id: number; quantity: number }> = {};
+      cartData.forEach((item: any) => {
+        map[item.product.id] = { id: item.id, quantity: item.quantity };
+      });
+      setCartItemsMap(map);
+      if (product && product.id in map) {
+        setLocalQuantity(map[product.id].quantity);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchCartItems();
+  }, [product]);
+
+  const handleUpdateQuantity = async (newQty: number) => {
+    if (!product) return;
+    const maxStock = product.stock;
+    const targetQty = Math.min(Math.max(1, newQty), maxStock);
+    
+    setLocalQuantity(targetQty);
+
+    if (product.id in cartItemsMap) {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        const localCartStr = localStorage.getItem("local_cart");
+        let localCart = localCartStr ? JSON.parse(localCartStr) : [];
+        const itemIndex = localCart.findIndex((item: any) => item.product.id === product.id);
+        if (itemIndex > -1) {
+          localCart[itemIndex].quantity = targetQty;
+          localStorage.setItem("local_cart", JSON.stringify(localCart));
+          fetchCartItems();
+        }
+        return;
+      }
+
+      const cartItem = cartItemsMap[product.id];
+      if (!cartItem) return;
+
+      try {
+        const { updateCartItem } = await import("@/services/cart.service");
+        await updateCartItem(cartItem.id, targetQty);
+        fetchCartItems();
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to update quantity");
+      }
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -48,7 +130,7 @@ export default function ProductDetailPage() {
       );
 
       if (existingItemIndex > -1) {
-        const newQty = localCart[existingItemIndex].quantity + quantity;
+        const newQty = localCart[existingItemIndex].quantity + localQuantity;
         if (newQty > product.stock) {
           toast.error(`Cannot add more than available stock (${product.stock})`);
           setIsAdding(false);
@@ -56,14 +138,14 @@ export default function ProductDetailPage() {
         }
         localCart[existingItemIndex].quantity = newQty;
       } else {
-        if (quantity > product.stock) {
+        if (localQuantity > product.stock) {
           toast.error(`Cannot add more than available stock (${product.stock})`);
           setIsAdding(false);
           return;
         }
         localCart.push({
           id: product.id,
-          quantity: quantity,
+          quantity: localQuantity,
           product: {
             id: product.id,
             name: product.name,
@@ -75,12 +157,14 @@ export default function ProductDetailPage() {
       localStorage.setItem("local_cart", JSON.stringify(localCart));
       toast.success("Added to cart!");
       setIsAdding(false);
+      fetchCartItems();
       return;
     }
 
     try {
-      await addToCart(product.id, quantity);
+      await addToCart(product.id, localQuantity);
       toast.success("Added to cart!");
+      fetchCartItems();
     } catch (err) {
       console.log(err);
       toast.error("Failed to add to cart");
@@ -208,17 +292,17 @@ export default function ProductDetailPage() {
                 <div className="flex items-center border border-slate-200 rounded-xl h-12 bg-slate-50">
                   <button
                     type="button"
-                    disabled={product.stock <= 0 || quantity <= 1}
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={product.stock <= 0 || localQuantity <= 1}
+                    onClick={() => handleUpdateQuantity(localQuantity - 1)}
                     className="w-11 h-full text-lg font-medium text-slate-600 hover:text-blue-600 disabled:opacity-30 transition-colors"
                   >
                     −
                   </button>
-                  <span className="w-10 text-center text-sm font-bold text-slate-900">{quantity}</span>
+                  <span className="w-10 text-center text-sm font-bold text-slate-900">{localQuantity}</span>
                   <button
                     type="button"
-                    disabled={product.stock <= 0 || quantity >= product.stock}
-                    onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                    disabled={product.stock <= 0 || localQuantity >= product.stock}
+                    onClick={() => handleUpdateQuantity(localQuantity + 1)}
                     className="w-11 h-full text-lg font-medium text-slate-600 hover:text-blue-600 disabled:opacity-30 transition-colors"
                   >
                     +
@@ -226,9 +310,19 @@ export default function ProductDetailPage() {
                 </div>
 
                 <button
-                  onClick={handleAddToCart}
+                  onClick={() => {
+                    if (product.id in cartItemsMap) {
+                      router.push("/cart");
+                    } else {
+                      handleAddToCart();
+                    }
+                  }}
                   disabled={product.stock <= 0 || isAdding}
-                  className="flex-1 h-12 rounded-xl bg-slate-900 text-sm font-semibold text-white hover:bg-slate-800 active:bg-slate-700 transition-all disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+                  className={`flex-1 h-12 rounded-xl text-sm font-semibold transition-all disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed shadow-sm hover:shadow-md flex items-center justify-center gap-2 ${
+                    product.id in cartItemsMap
+                      ? "bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white"
+                      : "bg-slate-900 hover:bg-slate-800 active:bg-slate-700 text-white"
+                  }`}
                 >
                   {product.stock <= 0 ? (
                     "Out of Stock"
@@ -239,6 +333,10 @@ export default function ProductDetailPage() {
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
                       Adding...
+                    </>
+                  ) : product.id in cartItemsMap ? (
+                    <>
+                      Go to Cart ✓
                     </>
                   ) : (
                     <>
