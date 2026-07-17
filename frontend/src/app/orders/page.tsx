@@ -24,6 +24,12 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login?redirect=/orders");
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       try {
@@ -31,12 +37,13 @@ export default function OrdersPage() {
         if (!cancelled) setOrders(data);
       } catch (e) {
         console.error(e);
+        router.push("/login?redirect=/orders");
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (
