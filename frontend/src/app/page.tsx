@@ -7,10 +7,7 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      router.push("/products");
-    }
+    router.push("/products");
   }, [router]);
 
   return (

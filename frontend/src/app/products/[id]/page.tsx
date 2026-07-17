@@ -39,6 +39,45 @@ export default function ProductDetailPage() {
   const handleAddToCart = async () => {
     if (!product) return;
     setIsAdding(true);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      const localCartStr = localStorage.getItem("local_cart");
+      let localCart = localCartStr ? JSON.parse(localCartStr) : [];
+      const existingItemIndex = localCart.findIndex(
+        (item: any) => item.product.id === product.id
+      );
+
+      if (existingItemIndex > -1) {
+        const newQty = localCart[existingItemIndex].quantity + quantity;
+        if (newQty > product.stock) {
+          toast.error(`Cannot add more than available stock (${product.stock})`);
+          setIsAdding(false);
+          return;
+        }
+        localCart[existingItemIndex].quantity = newQty;
+      } else {
+        if (quantity > product.stock) {
+          toast.error(`Cannot add more than available stock (${product.stock})`);
+          setIsAdding(false);
+          return;
+        }
+        localCart.push({
+          id: product.id,
+          quantity: quantity,
+          product: {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            imageUrl: product.imageUrl,
+          },
+        });
+      }
+      localStorage.setItem("local_cart", JSON.stringify(localCart));
+      toast.success("Added to cart!");
+      setIsAdding(false);
+      return;
+    }
+
     try {
       await addToCart(product.id, quantity);
       toast.success("Added to cart!");

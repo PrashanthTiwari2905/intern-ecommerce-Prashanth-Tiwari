@@ -19,6 +19,13 @@ export default function CartPage() {
   const router = useRouter();
 
   const fetchCart = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      const localCartStr = localStorage.getItem("local_cart");
+      setCart(localCartStr ? JSON.parse(localCartStr) : []);
+      setLoading(false);
+      return;
+    }
     try {
       const data = await getCart();
       setCart(data);
@@ -30,6 +37,13 @@ export default function CartPage() {
   };
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      const localCartStr = localStorage.getItem("local_cart");
+      setCart(localCartStr ? JSON.parse(localCartStr) : []);
+      setLoading(false);
+      return;
+    }
     let active = true;
     getCart()
       .then((d) => { if (active) setCart(d); })
@@ -39,6 +53,16 @@ export default function CartPage() {
   }, []);
 
   const handleDelete = async (id: number) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      const localCartStr = localStorage.getItem("local_cart");
+      let localCart = localCartStr ? JSON.parse(localCartStr) : [];
+      localCart = localCart.filter((item: any) => item.id !== id);
+      localStorage.setItem("local_cart", JSON.stringify(localCart));
+      toast.success("Item removed from cart");
+      setCart(localCart);
+      return;
+    }
     try {
       await removeFromCart(id);
       toast.success("Item removed from cart");
@@ -49,6 +73,12 @@ export default function CartPage() {
   };
 
   const handleCheckout = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please sign in to proceed to checkout");
+      router.push("/login?redirect=/cart");
+      return;
+    }
     setCheckingOut(true);
     try {
       await checkout();

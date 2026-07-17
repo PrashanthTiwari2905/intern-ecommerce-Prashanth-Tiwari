@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { login, getProfile } from "@/services/auth.service";
+import { addToCart } from "@/services/cart.service";
 import { useAuthStore } from "@/store/auth.store";
 
 interface LoginForm {
@@ -22,7 +23,9 @@ export default function LoginPage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      router.push("/products");
+      const params = new URLSearchParams(window.location.search);
+      const redirectPath = params.get("redirect") || "/products";
+      router.push(redirectPath);
     }
   }, [router]);
 
@@ -37,10 +40,28 @@ export default function LoginPage() {
     try {
       const response = await login(data);
       setToken(response.accessToken);
+
+      // Sync local cart to database
+      const localCartStr = localStorage.getItem("local_cart");
+      if (localCartStr) {
+        try {
+          const localCart = JSON.parse(localCartStr);
+          for (const item of localCart) {
+            await addToCart(item.product.id, item.quantity);
+          }
+          localStorage.removeItem("local_cart");
+        } catch (syncErr) {
+          console.error("Failed to sync cart:", syncErr);
+        }
+      }
+
       const profile = await getProfile();
       setUser(profile);
       toast.success("Welcome back!");
-      router.push("/products");
+
+      const params = new URLSearchParams(window.location.search);
+      const redirectPath = params.get("redirect") || "/products";
+      router.push(redirectPath);
     } catch {
       toast.error("Invalid email or password");
     } finally {
