@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getProfile } from "@/services/auth.service";
 import Navbar from "@/components/Navbar";
+import { useAuthStore } from "@/store/auth.store";
 
 interface UserProfile {
   id: number;
@@ -15,6 +16,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const { logout: storeLogout } = useAuthStore();
 
   useEffect(() => {
     let cancelled = false;
@@ -32,7 +34,7 @@ export default function ProfilePage() {
   }, [router]);
 
   function logout() {
-    localStorage.removeItem("token");
+    storeLogout();
     router.push("/login");
   }
 

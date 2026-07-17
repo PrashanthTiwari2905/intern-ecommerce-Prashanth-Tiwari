@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import dotenv from 'dotenv';
+dotenv.config();
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -8,7 +10,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 @Module({
   imports: [
     JwtModule.register({
-      secret: 'super-secret-key',
+      secret: process.env.JWT_SECRET || 'secretkeyforjwt',
       signOptions: {
         expiresIn: '1d',
       },
@@ -20,4 +22,4 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     JwtStrategy,
   ],
 })
-export class AuthModule {}
+export class AuthModule { }

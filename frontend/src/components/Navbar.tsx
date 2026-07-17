@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/auth.store";
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { logout: storeLogout } = useAuthStore();
 
   const logout = () => {
-    localStorage.removeItem("token");
+    storeLogout();
     router.push("/login");
   };
 
