@@ -70,7 +70,7 @@ export class AuthService {
       },
     });
 
-  if (!user) {
+  if (!user || !user.isActive) {
     throw new UnauthorizedException(
       'Invalid credentials',
     );
@@ -106,6 +106,14 @@ console.log(user?.password);
     accessToken,
   };
 }
+
+  async deleteProfile(userId: number) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isActive: false },
+    });
+    return { message: 'Profile deleted successfully' };
+  }
 }
 
 

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   UseGuards,
 } from '@nestjs/common';
@@ -69,5 +70,18 @@ login(
     @GetUser() user: any,
   ) {
     return user;
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Delete user profile',
+    description: 'Soft deletes the profile of the logged in user.',
+  })
+  @UseGuards(JwtAuthGuard)
+  @Delete('profile')
+  deleteProfile(
+    @GetUser() user: any,
+  ) {
+    return this.authService.deleteProfile(user.id);
   }
 }

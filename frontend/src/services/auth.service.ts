@@ -36,3 +36,11 @@ export const getProfile = async () => {
 
   return response.data;
 };
+
+export const deleteProfile = async () => {
+  const response = await api.delete(
+    "/auth/profile"
+  );
+
+  return response.data;
+};

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getProfile } from "@/services/auth.service";
+import { getProfile, deleteProfile } from "@/services/auth.service";
 import Navbar from "@/components/Navbar";
 import { useAuthStore } from "@/store/auth.store";
+import toast from "react-hot-toast";
 
 interface UserProfile {
   id: number;
@@ -16,6 +17,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { logout: storeLogout } = useAuthStore();
 
   useEffect(() => {
@@ -36,6 +38,23 @@ export default function ProfilePage() {
   function logout() {
     storeLogout();
     router.push("/login");
+  }
+
+  async function handleDeleteAccount() {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      setTimeout(() => setConfirmDelete(false), 4000);
+      return;
+    }
+    try {
+      await deleteProfile();
+      toast.success("Account deleted successfully");
+      storeLogout();
+      router.push("/login");
+    } catch (error) {
+      toast.error("Failed to delete account");
+      console.error(error);
+    }
   }
 
   if (loading) {
@@ -148,6 +167,30 @@ export default function ProfilePage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
             </svg>
             Sign Out
+          </button>
+          <button
+            onClick={handleDeleteAccount}
+            className={`w-full h-12 rounded-xl border text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+              confirmDelete 
+                ? "bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700"
+                : "border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300"
+            }`}
+          >
+            {confirmDelete ? (
+              <>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Are you sure? Click to confirm
+              </>
+            ) : (
+              <>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+                Delete Account
+              </>
+            )}
           </button>
         </div>
       </main>
