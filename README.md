@@ -45,6 +45,7 @@ A modern full-stack e-commerce application built as an internship assignment. Th
 - API Validation
 - Swagger Documentation
 - Modular Architecture
+- Jest Unit Tests (Database Mocking)
 
 ---
 
@@ -229,6 +230,12 @@ POST /auth/login
 GET /auth/profile
 ```
 
+## Delete Profile (Soft Delete)
+
+```http
+DELETE /auth/profile
+```
+
 ---
 
 # 📦 Product APIs
@@ -275,6 +282,12 @@ GET /orders/:id
 ---
 
 # 🧩 Key Features Implemented
+
+✅ Backend Stock Validation
+
+✅ Soft Delete Profile
+
+✅ Unit Testing with Jest & Database Mocking
 
 ✅ Authentication System
 
