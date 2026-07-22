@@ -85,8 +85,12 @@ export default function ProductsPage() {
         map[item.product.id] = { id: item.id, quantity: item.quantity };
       });
       setCartItemsMap(map);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      if (e.response?.status === 401) {
+        fetchCartItems();
+      } else {
+        console.error(e);
+      }
     }
   };
 
@@ -121,9 +125,13 @@ export default function ProductsPage() {
       const { updateCartItem } = await import("@/services/cart.service");
       await updateCartItem(cartItem.id, newQty);
       fetchCartItems();
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to update quantity");
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        fetchCartItems();
+      } else {
+        console.error(err);
+        toast.error("Failed to update quantity");
+      }
     }
   };
 
@@ -224,9 +232,13 @@ export default function ProductsPage() {
       await addToCart(productId, getQuantity(productId));
       toast.success("Added to cart!");
       fetchCartItems();
-    } catch (err) {
-      console.error(err);
-      toast.error("Couldn't add to cart");
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        handleAddToCart(productId);
+      } else {
+        console.error(err);
+        toast.error("Couldn't add to cart");
+      }
     } finally {
       setAddingId(null);
     }
