@@ -65,6 +65,7 @@ A modern full-stack e-commerce application built as an internship assignment. Th
 - TypeScript
 - Prisma ORM
 - PostgreSQL
+- Redis (Caching)
 - JWT Authentication
 - Swagger
 
@@ -289,6 +290,8 @@ GET /orders/:id
 
 ✅ Unit Testing with Jest & Database Mocking
 
+✅ Redis Caching (Product List & Auto-Invalidation)
+
 ✅ Authentication System
 
 ✅ JWT Authorization
@@ -320,7 +323,7 @@ Frontend (Next.js)
         |
         |
         ▼
-Backend API (NestJS)
+Backend API (NestJS) ───▶ Redis (Cache)
         |
         |
         ▼

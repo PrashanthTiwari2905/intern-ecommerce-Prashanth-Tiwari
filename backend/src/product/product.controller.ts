@@ -6,7 +6,11 @@ import {
   ParseIntPipe,
   Post,
   Query,
-} from '@nestjs/common'; 
+  UseInterceptors,
+  Inject,
+} from '@nestjs/common';
+import { CacheInterceptor, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 import {
   ApiTags,
@@ -22,8 +26,8 @@ import { CreateProductDto } from
 @Controller('products')
 export class ProductController {
   constructor(
-    private readonly productService: 
-ProductService,
+    private readonly productService: ProductService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
 @ApiOperation({
@@ -32,13 +36,13 @@ ProductService,
 })
 
   @Post()
-  create(
+  async create(
     @Body()
     createProductDto: CreateProductDto,
   ) {
-    return this.productService.create(
-      createProductDto,
-    );
+    // Invalidate Cache on Change
+    await this.cacheManager.clear(); 
+    return this.productService.create(createProductDto);
   }
 
 @ApiOperation({
@@ -47,7 +51,9 @@ ProductService,
 })
 
 @Post('seed')
-seedProducts() {
+async seedProducts() {
+  // Invalidate Cache on Change
+  await this.cacheManager.clear();
   return this.productService.seedProducts();
 }
 
@@ -57,6 +63,7 @@ seedProducts() {
 })
 
  @Get()
+ @UseInterceptors(CacheInterceptor)
 findAll(
   @Query('page') page?: string,
   @Query('limit') limit?: string,
