@@ -4,7 +4,7 @@ export const addToCart = async (
   productId: number,
   quantity: number
 ) => {
-  const res = await api.post("/cart/add", {
+  const res = await api.post("/cart", {
     productId,
     quantity,
   });
