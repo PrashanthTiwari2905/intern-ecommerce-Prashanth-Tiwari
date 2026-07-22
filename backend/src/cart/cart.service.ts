@@ -43,16 +43,22 @@ export class CartService {
       });
 
     if (existingCartItem) {
+      const newQuantity = existingCartItem.quantity + quantity;
+      if (newQuantity > product.stock) {
+        throw new BadRequestException(`Cannot add more than available stock (${product.stock})`);
+      }
       return this.prisma.cartItem.update({
         where: {
           id: existingCartItem.id,
         },
         data: {
-          quantity:
-            existingCartItem.quantity +
-            quantity,
+          quantity: newQuantity,
         },
       });
+    }
+
+    if (quantity > product.stock) {
+      throw new BadRequestException(`Cannot add more than available stock (${product.stock})`);
     }
 
     return this.prisma.cartItem.create({
@@ -86,12 +92,19 @@ export class CartService {
           id: cartItemId,
           userId,
         },
+        include: {
+          product: true,
+        },
       });
 
     if (!cartItem) {
       throw new BadRequestException(
         'Cart item not found',
       );
+    }
+
+    if (quantity > cartItem.product.stock) {
+      throw new BadRequestException(`Cannot update quantity beyond available stock (${cartItem.product.stock})`);
     }
 
     return this.prisma.cartItem.update({
